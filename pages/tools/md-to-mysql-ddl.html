@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>md2mysql</title>
+    <style>
+        #input, #output {
+            width: 500px;
+            height: 250px;
+        }
+    </style>
+</head>
+<body>
+<h2>markdown to mysql ddl</h2>
+convert markdown to mysql ddl<br>
+<textarea id="input">
+## 人群 crowd
+field|type|description|null
+-|-|-|-
+id|varchar(10)|id|
+name|varchar(10)|名称|
+desc|varchar(10)|描述|yes
+
+## 人群详情 crowd_detail
+|field|type|description|null|
+|-|-|-|-|
+|id|varchar(10)|id|
+|name|varchar(10)|名称|
+|desc|varchar(10)|描述|yes|
+</textarea>
+<input id="id-btn" type="button" value="convert">
+<textarea id="output"></textarea>
+<div>
+    <a id="id-error" style="color:red"></a>
+</div>
+</body>
+<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+<script>
+    var defaultNull = false;
+
+    function isTableName(line) {
+        return line.startsWith('##');
+    }
+
+    function removePrefixAndPostfixSpace(line) {
+        return line.replace(/^\s+/, '').replace(/\s+$/, '');
+    }
+
+    function getTableInfo(line) {
+        var ret = {};
+        line = removePrefixAndPostfixSpace(line.substr(2));
+        var words = line.split(' ');
+        ret.name = words[1];
+        ret.description = words[0];
+        return ret;
+    }
+
+    function isTableSep(line) {
+        return line.indexOf('-|-|-|-') !== -1;
+    }
+
+    function removePrefixAndPostfixSep(line) {
+        return line.replace(/^\|/, '').replace(/\|$/, '');
+    }
+
+    function isField(line) {
+        line = removePrefixAndPostfixSep(removePrefixAndPostfixSpace(line));
+        words = line.split('|');
+        return words.length > 1;
+    }
+
+    function getField(line) {
+        line = removePrefixAndPostfixSep(removePrefixAndPostfixSpace(line));
+
+        words = line.split('|');
+        if (words.length < 2) {
+            console.log('error parse field: ' + line);
+        } else {
+            var ret = {};
+            ret.name = words[0];
+            ret.type = words[1];
+            ret.description = words[2];
+            ret.null = words[3] === 'yes';
+            return ret;
+        }
+        return undefined;
+    }
+
+    function parse(lines) {
+        var lineList = lines.split('\n');
+        var table;
+        var fields;
+        var ret = "";
+        var status = {};
+        status.meetTable = false;
+        status.meetSep = false;
+        status.meetField = false;
+
+        for (var i in lineList) {
+            var line = lineList[i];
+            if (!status.meetTable) {
+                if (!isTableName(line)) {
+                    continue;
+                } else {
+                    table = getTableInfo(line);
+                    status.meetTable = true;
+                    fields = [];
+                }
+            } else {
+                if (!status.meetSep) {
+                    if (!isTableSep(line)) {
+                        continue;
+                    } else {
+                        status.meetSep = true;
+                    }
+                } else {
+                    if (isField(line)) {
+                        fields.push(getField(line));
+                    } else {
+                        status.meetTable = false;
+                        status.meetSep = false;
+                        status.meetField = false;
+                        ret += render(table, fields) + "\n";
+
+                        if (isTableName(line)) {
+                            table = getTableInfo(line);
+                            status.meetTable = true;
+                            fields = [];
+                        }
+                    }
+                }
+            }
+        }
+        return ret;
+    }
+
+    function render(table, fields) {
+        var s = "create table " + table.name + "\n(\n";
+        for (var i in fields) {
+            var f = fields[i];
+            s += f.name + " " + f.type;
+            if (!f.null) {
+                s += " not null"
+            }
+            if (f.description) {
+                s += " comment '" + f.description + "'";
+            }
+            if (i != fields.length - 1) {
+                s += ','
+            }
+            s += '\n';
+        }
+        s += ")";
+        if (table.description !== undefined) {
+            s += "\ncomment '" + table.description + "';"
+        }
+        return s + '\n';
+    }
+
+    function error(msg) {
+        $('#id-error').text(msg);
+    }
+
+    $('#id-btn').click(function (event) {
+        error("");
+        $('#output').val('');
+
+        var input = $('#input').val();
+        try {
+            $('#output').val(parse(input));
+        } catch (e) {
+            error(e.message);
+        }
+    });
+</script>
+</html>

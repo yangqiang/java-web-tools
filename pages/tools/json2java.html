@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>json2java</title>
+</head>
+<body>
+<h2>json to POJO</h2>
+convert the given json to the corresponding plain ordinary java object.<br>
+<textarea id="input" style="width: 500px; height: 500px">
+{
+    "kint": 1,
+    "kdouble": 2.1,
+    "kobject": {"a": {}},
+    "kbool": true,
+    "kstring": "",
+    "kintarray": [1],
+    "kintarrayarray": [[1]],
+    "kobjectarray": [{"a": 1}],
+    "kobjectwitharrayfield": {"a": [1]}
+}
+</textarea>
+<input id="id-btn" type="button" value="convert">
+<textarea id="output" style="width: 500px; height: 500px"></textarea>
+<div>
+    <a id="id-error" style="color:red"></a>
+</div>
+</body>
+<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+<script>
+    var tab = "\t";
+
+    function getJavaBasicType(v) {
+        var typeV = typeof v;
+        if (typeV === 'number') {
+            if (String(v).indexOf(".") !== -1) {
+                return "Double";
+            } else {
+                return "Integer";
+            }
+        } else if (typeV === 'string') {
+            return "String"
+        } else if (typeV === 'boolean') {
+            return "Boolean"
+        }
+        return null;
+    }
+
+    function upperFirst(k) {
+        return k.substr(0, 1).toUpperCase() + k.substr(1, k.length - 1);
+    }
+
+    function parseField(k, v, indent) {
+        var t = getJavaBasicType(v);
+        var extra = null;
+        var typeV = typeof v;
+        var result = "";
+
+        if (typeV === 'object') {
+            if (v instanceof Array) {
+                var ret = parseArray(v, k, indent);
+                t = ret.t;
+                extra = ret.extra;
+            } else {
+                t = upperFirst(k);
+                extra = indent + parseObject(v, t, indent, false);
+            }
+        }
+
+        if (t != null) {
+            result = indent + "public " + t + " " + k + ";\n";
+            if (extra != null) {
+                result += extra;
+            }
+        }
+
+        return result;
+    }
+
+    function parseObject(o, name, indent, isRoot) {
+        var ret = "\n" + indent + "@Data\n" + indent + "public";
+        if (!isRoot) {
+            ret += " static";
+        }
+        ret += " class " + name + " {\n";
+
+        for (var k in o) {
+            var v = o[k];
+            ret += parseField(k, v, indent + tab);
+        }
+
+        ret += indent + "}\n";
+        return ret;
+    }
+
+    function parseArray(a, name, indent) {
+        var ret = {};
+        ret.extra = null;
+
+        if (a.length === 0) {
+            ret.t = "List<Object>";
+        } else {
+            var innerType = typeof a[0];
+            if (innerType === 'object') {
+                if (a[0] instanceof Array) {
+                    var innerRet = parseArray(a[0], name + 'I', indent);
+                    ret.t = 'List<' + innerRet.t + '>';
+                    if (null != innerRet.extra) {
+                        if (null != ret.extra) {
+                            ret.extra += innerRet.extra;
+                        } else {
+                            ret.extra = innerRet.extra
+                        }
+                    }
+                } else {
+                    var innerClassName = upperFirst(name);
+                    ret.t = 'List<' + innerClassName + '>';
+                    ret.extra = parseObject(a[0], innerClassName, indent, false);
+                }
+            } else {
+                ret.t = 'List<' + getJavaBasicType(a[0]) + '>';
+            }
+        }
+        return ret;
+    }
+
+    function parse(o) {
+        var t = typeof o;
+        if (t === 'object') {
+            if (t instanceof Array) {
+                if (t.length > 0) {
+                    return parse(o[0]);
+                } else {
+                    error("empty list")
+                }
+            } else {
+                return parseObject(o, 'VO', '', false);
+            }
+        } else {
+            error('unsupported type: ' + o.type);
+        }
+    }
+
+    function error(msg) {
+        $('#id-error').text(msg);
+    }
+
+    $('#id-btn').click(function (event) {
+        error("");
+        $('#output').val('');
+
+        var input = $('#input').val();
+        try {
+            input = JSON.parse(input);
+            $('#output').val(parse(input));
+        } catch (e) {
+            error(e.message);
+        }
+    });
+</script>
+</html>

@@ -1,0 +1,31 @@
+defaultTasks 'push'
+
+project.group = 'cbd'
+project.version = "${VERSION}"
+
+ext {
+    env = System.getenv()
+}
+
+def imageName = "${env.DOCKER_REPO}/${project.group}/${project.name}:${env.TAG_VALUE}"
+
+task build(type: Exec) {
+    workingDir '.'
+    commandLine 'docker', 'build', '-t', imageName, '-f', 'docker/Dockerfile', '.'
+}
+
+task push(type: Exec, dependsOn: 'build') {
+    commandLine 'docker', 'push', imageName
+}
+
+task rm(type: Exec) {
+    commandLine 'docker', 'image', 'rm', imageName
+}
+
+task stop(type: Exec) {
+    commandLine 'docker', 'rm', '-f', "${project.name}"
+}
+
+task test(type: Exec, dependsOn: 'build') {
+    commandLine 'docker', 'run', '-p', '8080:80', '-d', '--name', "${project.name}", imageName
+}

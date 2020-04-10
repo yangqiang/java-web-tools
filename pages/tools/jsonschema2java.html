@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>json schema to POJO</title>
+</head>
+<body>
+<h2>json schema to POJO</h2>
+convert the given json schema to the corresponding plain ordinary java object.<br>
+<div>
+<textarea id="input" style="width: 500px; height: 500px">
+{
+  "type": "object",
+  "title": "empty object",
+  "properties": {
+    "k_int": {
+      "type": "integer",
+      "description": "1"
+    },
+    "k_double": {
+      "type": "number"
+    },
+    "k_object": {
+      "type": "object",
+      "properties": {
+        "a": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      "required": [
+        "a"
+      ]
+    },
+    "k_bool": {
+      "type": "boolean"
+    },
+    "k_string": {
+      "type": "string"
+    },
+    "k_int_array": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      }
+    },
+    "k_int_array_array": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      }
+    },
+    "k_object_array": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "a": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "a"
+        ]
+      }
+    },
+    "k_object_with_array_field": {
+      "type": "object",
+      "properties": {
+        "a": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      },
+      "required": [
+        "a"
+      ]
+    }
+  },
+  "required": [
+    "k_int",
+    "k_double",
+    "k_object",
+    "k_bool",
+    "k_string",
+    "k_int_array",
+    "k_int_array_array",
+    "k_object_array",
+    "k_object_with_array_field"
+  ]
+}
+</textarea>
+    <input id="id-btn" type="button" value="convert">
+    <textarea id="output" style="width: 500px; height: 500px"></textarea>
+</div>
+<div>
+    <a id="id-error" style="color: red;"></a>
+</div>
+</body>
+<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+<script>
+    var tab = "\t";
+
+    function getJavaBasicType(typeV) {
+        if (typeV === 'number') {
+            return "Double";
+        } else if (typeV === 'integer') {
+            return "Integer";
+        } else if (typeV === 'string') {
+            return "String"
+        } else if (typeV === 'boolean') {
+            return "Boolean"
+        }
+        return null;
+    }
+
+    function upperFirst(k) {
+        return k.substr(0, 1).toUpperCase() + k.substr(1, k.length - 1);
+    }
+
+    function toCamel(k) {
+        var ret = "";
+        var meetUnderscore = false;
+
+        for (var i = 0; i < k.length; i++) {
+            var c = k[i];
+            if (c === "_") {
+                meetUnderscore = true;
+            } else {
+                if (meetUnderscore) {
+                    c = c.toUpperCase();
+                    meetUnderscore = false;
+                }
+                ret += c;
+            }
+        }
+
+        return ret;
+    }
+
+    function parseField(k, v, indent) {
+        var t = getJavaBasicType(v.type);
+        var extra = null;
+        var typeV = v.type;
+        var result = "";
+        k = toCamel(k);
+
+        if (typeV === 'object') {
+            t = upperFirst(k);
+            extra = indent + parseObject(v, t, indent, false);
+        } else if (typeV === 'array') {
+            var ret = parseArray(v, k, indent);
+            t = ret.t;
+            extra = ret.extra;
+        }
+
+        if (t != null) {
+            result = indent + "public " + t + " " + k + ";\n";
+            if (extra != null) {
+                result += extra;
+            }
+        }
+
+        return result;
+    }
+
+    function parseObject(o, name, indent, isRoot) {
+        var ret = "\n" + indent + "@Data\n" + indent + "public";
+        if (!isRoot) {
+            ret += " static";
+        }
+        ret += " class " + name + " {\n";
+
+        for (var k in o.properties) {
+            var v = o.properties[k];
+            ret += parseField(k, v, indent + tab);
+        }
+
+        ret += indent + "}\n";
+        return ret;
+    }
+
+    function parseArray(a, name, indent) {
+        var ret = {};
+        ret.extra = null;
+
+        var innerType = a.items.type;
+        if (innerType === 'object') {
+            var innerClassName = upperFirst(name);
+            ret.t = 'List<' + innerClassName + '>';
+            ret.extra = parseObject(a.items, innerClassName, indent, false);
+        } else if (innerType === 'array') {
+            var innerRet = parseArray(a.items, name + 'I', indent);
+            ret.t = 'List<' + innerRet.t + '>';
+            if (null != innerRet.extra) {
+                if (null != ret.extra) {
+                    ret.extra += innerRet.extra;
+                } else {
+                    ret.extra = innerRet.extra
+                }
+            }
+        } else {
+            ret.t = 'List<' + getJavaBasicType(innerType) + '>';
+        }
+
+        return ret;
+    }
+
+    function parse(o) {
+        if (o.type === 'object') {
+            return parseObject(o, 'VO', '', false);
+        } else if (o.type === 'array') {
+            return parse(o.items)
+        } else {
+            error('unsupported type: ' + o.type);
+        }
+    }
+
+    function error(msg) {
+        $('#id-error').text(msg);
+    }
+
+    $('#id-btn').click(function (event) {
+        error("")
+        var input = $('#input').val();
+        input = JSON.parse(input);
+
+        $('#output').val(parse(input));
+    });
+</script>
+</html>

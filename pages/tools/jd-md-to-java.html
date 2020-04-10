@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>md2dto</title>
+    <style>
+        #input, #output {
+            width: 500px;
+            height: 250px;
+        }
+    </style>
+</head>
+<body>
+<h2>markdown to DTO</h2>
+convert markdown to java DTO<br>
+<textarea id="input">
+| master_id    | String   | 是       | 品牌商id                                                     |
+| crowd_name   | String   | 是       | 人群对象名称                                                 |
+| crowd_desc   | String   | 否       | 人群对象描述                                                 |
+| crowd_type   | int      | 是       | 人群对象类型：1-算法人群 2-提取人群                          |
+| package_type | int      | 是       | 人群域类型：<br/>1-公域 2-私域，必须和condition中的私域标签保持一致 |
+| condition    | String   | 否       | crowd_type!=1时必填，<br/>筛选条件，json格式字符串，借鉴elasticsearch语法 |
+| model_id     | String   | 否       | crowd_type=1时必填，模型id                                   |
+| args         | String   | 否       | crowd_type=1时必填，模型计算参数，json格式字符串             |
+</textarea>
+<select id="id-select">
+    <option value="DTO">DTO</option>
+    <option value="VO">VO</option>
+</select>
+<input id="id-btn" type="button" value="convert">
+<textarea id="output"></textarea>
+<div>
+    <a id="id-error" style="color:red"></a>
+</div>
+</body>
+<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+<script>
+    function removePrefixAndPostfixSpace(line) {
+        return line.replace(/^\s+/, '').replace(/\s+$/, '');
+    }
+
+    function removePrefixAndPostfixSep(line) {
+        return line.replace(/^\|/, '').replace(/\|$/, '');
+    }
+
+    function splitAndClean(line) {
+        line = removePrefixAndPostfixSep(removePrefixAndPostfixSpace(line));
+
+        words = line.split('|');
+        for (var i in words) {
+            words[i] = removePrefixAndPostfixSpace(words[i]);
+        }
+        return words;
+    }
+
+    function getField(line) {
+        words = splitAndClean(line);
+        if (words.length < 2) {
+            console.log('error parse field: ' + line);
+        } else {
+            var ret = {};
+            ret.name = words[0];
+            ret.type = words[1];
+            ret.description = words[3];
+            ret.null = words[2] === '否';
+            return ret;
+        }
+        return undefined;
+    }
+
+    function parse(lines) {
+        var lineList = lines.split('\n');
+        var fields = [];
+
+        for (var i in lineList) {
+            var line = lineList[i];
+            var field = getField(line);
+            if (field) {
+                fields.push(field);
+            }
+        }
+        return render(fields);
+    }
+
+    function upperFirst(k) {
+        return k.substr(0, 1).toUpperCase() + k.substr(1, k.length - 1);
+    }
+
+    function toCamel(k) {
+        var ret = "";
+        var meetUnderscore = false;
+
+        for (var i = 0; i < k.length; i++) {
+            var c = k[i];
+            if (c === "_") {
+                meetUnderscore = true;
+            } else {
+                if (meetUnderscore) {
+                    c = c.toUpperCase();
+                    meetUnderscore = false;
+                }
+                ret += c;
+            }
+        }
+
+        return ret;
+    }
+
+    function cleanType(t) {
+        if (t === 'int') {
+            return 'Integer';
+        } else if (t === 'long') {
+            return 'Long'
+        }
+        return t;
+    }
+
+    function render(fields) {
+        var isDto = $('#id-select').val() === 'DTO';
+
+        var s = "@Data\npublic class "+ $('#id-select').val() + " {\n";
+        for (var i in fields) {
+            var f = fields[i];
+            var line = 'public ';
+            if (!f.null && isDto) {
+                if (f.type === 'String') {
+                    line += '@NotBlank '
+                } else {
+                    line += '@NotNull '
+                }
+            }
+            line += cleanType(f.type) + " " + toCamel(f.name) + ";\n";
+            s += '\t' + line;
+        }
+        s += "}\n";
+        return s;
+    }
+
+    function error(msg) {
+        $('#id-error').text(msg);
+    }
+
+    $('#id-btn').click(function (event) {
+        error("");
+        $('#output').val('');
+
+        var input = $('#input').val();
+        try {
+            $('#output').val(parse(input));
+        } catch (e) {
+            error(e.message);
+        }
+    });
+</script>
+</html>

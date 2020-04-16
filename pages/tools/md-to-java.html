@@ -34,47 +34,29 @@ convert markdown to java DTO<br>
 </div>
 </body>
 <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+<script src="util.js"></script>
 <script>
-    function removePrefixAndPostfixSpace(line) {
-        return line.replace(/^\s+/, '').replace(/\s+$/, '');
-    }
-
-    function removePrefixAndPostfixSep(line) {
-        return line.replace(/^\|/, '').replace(/\|$/, '');
-    }
-
-    function splitAndClean(line) {
-        line = removePrefixAndPostfixSep(removePrefixAndPostfixSpace(line));
-
-        words = line.split('|');
-        for (var i in words) {
-            words[i] = removePrefixAndPostfixSpace(words[i]);
-        }
-        return words;
-    }
-
     function getField(line) {
-        words = splitAndClean(line);
+        let words = mdUtil.splitAndClean(line);
         if (words.length < 2) {
             console.log('error parse field: ' + line);
         } else {
-            var ret = {};
+            const ret = {};
             ret.name = words[0];
             ret.type = words[1];
             ret.description = words[3];
             ret.null = words[2] === '否';
             return ret;
         }
-        return undefined;
     }
 
     function parse(lines) {
-        var lineList = lines.split('\n');
-        var fields = [];
+        const lineList = lines.split('\n');
+        const fields = [];
 
-        for (var i in lineList) {
-            var line = lineList[i];
-            var field = getField(line);
+        for (const i in lineList) {
+            const line = lineList[i];
+            const field = getField(line);
             if (field) {
                 fields.push(field);
             }
@@ -82,43 +64,10 @@ convert markdown to java DTO<br>
         return render(fields);
     }
 
-    function upperFirst(k) {
-        return k.substr(0, 1).toUpperCase() + k.substr(1, k.length - 1);
-    }
-
-    function toCamel(k) {
-        var ret = "";
-        var meetUnderscore = false;
-
-        for (var i = 0; i < k.length; i++) {
-            var c = k[i];
-            if (c === "_") {
-                meetUnderscore = true;
-            } else {
-                if (meetUnderscore) {
-                    c = c.toUpperCase();
-                    meetUnderscore = false;
-                }
-                ret += c;
-            }
-        }
-
-        return ret;
-    }
-
-    function cleanType(t) {
-        if (t === 'int') {
-            return 'Integer';
-        } else if (t === 'long') {
-            return 'Long'
-        }
-        return t;
-    }
-
     function render(fields) {
         var isDto = $('#id-select').val() === 'DTO';
 
-        var s = "@Data\npublic class "+ $('#id-select').val() + " {\n";
+        var s = "@Data\npublic class " + $('#id-select').val() + " {\n";
         for (var i in fields) {
             var f = fields[i];
             var line = 'public ';
@@ -129,7 +78,7 @@ convert markdown to java DTO<br>
                     line += '@NotNull '
                 }
             }
-            line += cleanType(f.type) + " " + toCamel(f.name) + ";\n";
+            line += mdUtil.cleanType(f.type) + " " + toCamel(f.name) + ";\n";
             s += '\t' + line;
         }
         s += "}\n";

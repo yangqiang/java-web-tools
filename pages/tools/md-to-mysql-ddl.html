@@ -21,9 +21,9 @@ id|varchar(10)|id|
 name|varchar(10)|名称|
 desc|varchar(10)|描述|yes
 
-## 人群详情 crowd_detail
+## 人群详情 crowdDetail
 |field|type|description|null|
-|-|-|-|-|
+| --| - |--|--|
 |id|varchar(10)|id|
 |name|varchar(10)|名称|
 |desc|varchar(10)|描述|yes|
@@ -35,20 +35,16 @@ desc|varchar(10)|描述|yes
 </div>
 </body>
 <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+<script src="util.js"></script>
 <script>
-    var defaultNull = false;
-
     function isTableName(line) {
         return line.startsWith('##');
     }
 
-    function removePrefixAndPostfixSpace(line) {
-        return line.replace(/^\s+/, '').replace(/\s+$/, '');
-    }
-
     function getTableInfo(line) {
         var ret = {};
-        line = removePrefixAndPostfixSpace(line.substr(2));
+        line = line.replace(/^#+/, '');
+        line = removePrefixAndPostfixSpace(line);
         var words = line.split(' ');
         ret.name = words[1];
         ret.description = words[0];
@@ -56,11 +52,7 @@ desc|varchar(10)|描述|yes
     }
 
     function isTableSep(line) {
-        return line.indexOf('-|-|-|-') !== -1;
-    }
-
-    function removePrefixAndPostfixSep(line) {
-        return line.replace(/^\|/, '').replace(/\|$/, '');
+        return /-+\s*\|\s*-+/.test(line);
     }
 
     function isField(line) {
@@ -121,6 +113,7 @@ desc|varchar(10)|描述|yes
                         status.meetSep = false;
                         status.meetField = false;
                         ret += render(table, fields) + "\n";
+                        fields = [];
 
                         if (isTableName(line)) {
                             table = getTableInfo(line);
@@ -131,14 +124,17 @@ desc|varchar(10)|描述|yes
                 }
             }
         }
+        if (fields.length > 0) {
+            ret += render(table, fields) + "\n";
+        }
         return ret;
     }
 
     function render(table, fields) {
-        var s = "create table " + table.name + "\n(\n";
+        var s = "create table " + toSnake(table.name) + "\n(\n";
         for (var i in fields) {
             var f = fields[i];
-            s += f.name + " " + f.type;
+            s += toSnake(f.name) + " " + f.type;
             if (!f.null) {
                 s += " not null"
             }

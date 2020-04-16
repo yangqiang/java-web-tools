@@ -6,7 +6,8 @@
 </head>
 <body>
 <h2>json schema to POJO</h2>
-convert the given json schema to the corresponding plain ordinary java object.<br>
+convert the given json schema to the corresponding plain ordinary java
+object.<br>
 <div>
 <textarea id="input" style="width: 500px; height: 500px">
 {
@@ -103,46 +104,8 @@ convert the given json schema to the corresponding plain ordinary java object.<b
 </div>
 </body>
 <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+<script src="util.js"></script>
 <script>
-    var tab = "\t";
-
-    function getJavaBasicType(typeV) {
-        if (typeV === 'number') {
-            return "Double";
-        } else if (typeV === 'integer') {
-            return "Integer";
-        } else if (typeV === 'string') {
-            return "String"
-        } else if (typeV === 'boolean') {
-            return "Boolean"
-        }
-        return null;
-    }
-
-    function upperFirst(k) {
-        return k.substr(0, 1).toUpperCase() + k.substr(1, k.length - 1);
-    }
-
-    function toCamel(k) {
-        var ret = "";
-        var meetUnderscore = false;
-
-        for (var i = 0; i < k.length; i++) {
-            var c = k[i];
-            if (c === "_") {
-                meetUnderscore = true;
-            } else {
-                if (meetUnderscore) {
-                    c = c.toUpperCase();
-                    meetUnderscore = false;
-                }
-                ret += c;
-            }
-        }
-
-        return ret;
-    }
-
     function parseField(k, v, indent) {
         var t = getJavaBasicType(v.type);
         var extra = null;
@@ -178,7 +141,7 @@ convert the given json schema to the corresponding plain ordinary java object.<b
 
         for (var k in o.properties) {
             var v = o.properties[k];
-            ret += parseField(k, v, indent + tab);
+            ret += parseField(k, v, indent + TAB);
         }
 
         ret += indent + "}\n";

@@ -27,31 +27,10 @@ convert the given json to the corresponding plain ordinary java object.<br>
 </div>
 </body>
 <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+<script src="util.js"></script>
 <script>
-    var tab = "\t";
-
-    function getJavaBasicType(v) {
-        var typeV = typeof v;
-        if (typeV === 'number') {
-            if (String(v).indexOf(".") !== -1) {
-                return "Double";
-            } else {
-                return "Integer";
-            }
-        } else if (typeV === 'string') {
-            return "String"
-        } else if (typeV === 'boolean') {
-            return "Boolean"
-        }
-        return null;
-    }
-
-    function upperFirst(k) {
-        return k.substr(0, 1).toUpperCase() + k.substr(1, k.length - 1);
-    }
-
     function parseField(k, v, indent) {
-        var t = getJavaBasicType(v);
+        var t = getJavaBasicType(getSchemaType(v));
         var extra = null;
         var typeV = typeof v;
         var result = "";
@@ -68,7 +47,7 @@ convert the given json to the corresponding plain ordinary java object.<br>
         }
 
         if (t != null) {
-            result = indent + "public " + t + " " + k + ";\n";
+            result = indent + "public " + t + " " + toCamel(k) + ";\n";
             if (extra != null) {
                 result += extra;
             }
@@ -86,7 +65,7 @@ convert the given json to the corresponding plain ordinary java object.<br>
 
         for (var k in o) {
             var v = o[k];
-            ret += parseField(k, v, indent + tab);
+            ret += parseField(k, v, indent + TAB);
         }
 
         ret += indent + "}\n";
@@ -118,7 +97,7 @@ convert the given json to the corresponding plain ordinary java object.<br>
                     ret.extra = parseObject(a[0], innerClassName, indent, false);
                 }
             } else {
-                ret.t = 'List<' + getJavaBasicType(a[0]) + '>';
+                ret.t = 'List<' + getJavaBasicType(getSchemaType(a[0])) + '>';
             }
         }
         return ret;

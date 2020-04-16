@@ -30,31 +30,14 @@ convert markdown to json schema<br>
 </div>
 </body>
 <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+<script src="util.js"></script>
 <script>
-    function removePrefixAndPostfixSpace(line) {
-        return line.replace(/^\s+/, '').replace(/\s+$/, '');
-    }
-
-    function removePrefixAndPostfixSep(line) {
-        return line.replace(/^\|/, '').replace(/\|$/, '');
-    }
-
-    function splitAndClean(line) {
-        line = removePrefixAndPostfixSep(removePrefixAndPostfixSpace(line));
-
-        words = line.split('|');
-        for (var i in words) {
-            words[i] = removePrefixAndPostfixSpace(words[i]);
-        }
-        return words;
-    }
-
     function getField(line) {
-        words = splitAndClean(line);
+        const words = mdUtil.splitAndClean(line);
         if (words.length < 2) {
             console.log('error parse field: ' + line);
         } else {
-            var ret = {};
+            const ret = {};
             ret.name = words[0];
             ret.type = words[1];
             ret.description = words[3];
@@ -78,15 +61,6 @@ convert markdown to json schema<br>
         return render(fields);
     }
 
-    function cleanType(t) {
-        if (t === 'int') {
-            return 'integer';
-        } else if (t === 'String') {
-            return 'string';
-        }
-        return t;
-    }
-
     function render(fields) {
         var o = {type: 'object', properties: {}};
         var required = [];
@@ -98,7 +72,7 @@ convert markdown to json schema<br>
             if (!f.null) {
                 required.push(f.name);
             }
-            o.properties[f.name] = {'type': cleanType(f.type), 'description': f.description};
+            o.properties[f.name] = {'type': mdUtil.cleanType(f.type), 'description': f.description};
         }
 
         return JSON.stringify(o, null, 2);

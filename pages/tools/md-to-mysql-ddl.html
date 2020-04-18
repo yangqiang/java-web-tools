@@ -14,19 +14,16 @@
 <h2>markdown to mysql ddl</h2>
 convert markdown to mysql ddl<br>
 <textarea id="input">
-## 人群 crowd
-field|type|description|null
--|-|-|-
-id|varchar(10)|id|
-name|varchar(10)|名称|
-desc|varchar(10)|描述|yes
-
-## 人群详情 crowdDetail
-|field|type|description|null|
-| --| - |--|--|
-|id|varchar(10)|id|
-|name|varchar(10)|名称|
-|desc|varchar(10)|描述|yes|
+### 人群去重任务 crowd_remove_duplicate_task
+|字段| 字段类型|含义|是否必须(默认是)|
+|-|-|-|-|
+| id         | varchar(36) |                                |                    |
+| createTime | datetime    | 创建时间                       |                    |
+| updateTime | datetime    | 更新时间                       |                    |
+| status | tinyint unsigned|状态|
+| calculations | json | 关联的交并差计算列表
+|result|json|计算结果|否
+|failure_reason|varchar(100)|失败原因|否
 </textarea>
 <input id="id-btn" type="button" value="convert">
 <textarea id="output"></textarea>
@@ -69,10 +66,10 @@ desc|varchar(10)|描述|yes
             console.log('error parse field: ' + line);
         } else {
             var ret = {};
-            ret.name = words[0];
-            ret.type = words[1];
-            ret.description = words[2];
-            ret.null = words[3] === 'yes';
+            ret.name = removePrefixAndPostfixSpace(words[0]);
+            ret.type = removePrefixAndPostfixSpace(words[1]);
+            ret.description = removePrefixAndPostfixSpace(words[2]);
+            ret.null = words[3] !== undefined && words[3].indexOf('否') !== -1;
             return ret;
         }
         return undefined;

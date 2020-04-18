@@ -135,6 +135,9 @@ convert markdown to mysql ddl<br>
             if (!f.null) {
                 s += " not null"
             }
+            if (f.name === "id") {
+                s += " primary key"
+            }
             if (f.description) {
                 s += " comment '" + f.description + "'";
             }

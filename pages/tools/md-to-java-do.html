@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>md2mysql</title>
+    <title>md2java-do</title>
     <style>
         #input, #output {
             width: 500px;
@@ -11,8 +11,7 @@
     </style>
 </head>
 <body>
-<h2>markdown to mysql ddl</h2>
-convert markdown to mysql ddl<br>
+<h2>markdown 转 Java DO</h2>
 <textarea id="input">
 ### 人群去重任务 crowd_remove_duplicate_task
 |字段| 字段类型|含义|是否必须(默认是)|
@@ -35,29 +34,13 @@ convert markdown to mysql ddl<br>
 <script src="util.js"></script>
 <script>
     function renderOne(name, fields) {
-        var s = "create table " + toSnake(name.name) + "\n(\n";
-        for (var i in fields) {
-            var f = fields[i];
-            s += toSnake(f.name) + " " + f.type;
-            if (!f.null) {
-                s += " not null"
-            }
-            if (f.name === "id") {
-                s += " primary key"
-            }
-            if (f.description) {
-                s += " comment '" + f.description + "'";
-            }
-            if (i != fields.length - 1) {
-                s += ','
-            }
-            s += '\n';
+        let s = "@Data\npublic class " + upperFirst(toCamel(name.name)) + "DO {\n";
+        for (const i in fields) {
+            let f = fields[i];
+            s += TAB + "public " + mysqlTypeToJavaType(f.type) + " " + toCamel(f.name) + ";\n";
         }
-        s += ")";
-        if (name.description !== undefined) {
-            s += "\ncomment '" + name.description + "';"
-        }
-        return s + '\n';
+        s += "}\n";
+        return s;
     }
 
     function render(tables) {

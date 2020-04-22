@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>json-uglify</title>
+    <style>
+        #input, #output {
+            width: 500px;
+            height: 250px;
+        }
+    </style>
+</head>
+<body>
+<h2>json uglify</h2>
+<textarea id="input">
+{
+
+    "TAG1": 1,
+    "TAG2": [1,2],
+    "TAG3": [1,2]
+  }
+</textarea>
+<input id="id-btn" type="button" value="convert">
+<textarea id="output"></textarea>
+<div>
+    <a id="id-error" style="color:red"></a>
+</div>
+</body>
+<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+<script src="util.js"></script>
+<script>
+    function render(s) {
+        return s.replace(/[\n\s\t]/g, '');
+    }
+
+    function error(msg) {
+        $('#id-error').text(msg);
+    }
+
+    $('#id-btn').click(function (event) {
+        error("");
+        $('#output').val('');
+
+        var input = $('#input').val();
+        try {
+            $('#output').val(render(input));
+        } catch (e) {
+            error(e.message);
+        }
+    });
+</script>
+</html>

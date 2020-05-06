@@ -196,7 +196,7 @@ function mysqlTypeToJavaType(t) {
     } else if (contains(t, "bool")) {
         return "Boolean";
     } else if (contains(t, "datetime")) {
-        return "DateTime";
+        return "Date";
     } else if (contains(t, "decimal")) {
         return "Double";
     } else if (contains(t, "char")|| contains(t, "json")) {
